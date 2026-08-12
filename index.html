@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sleepy Thumbnail Studio</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#090b0f;color:#f4f6fa;font-family:Inter,Arial,sans-serif;overflow:hidden}
+button,input,select{font:inherit}.topbar{height:58px;background:#11141a;border-bottom:1px solid #272c35;display:flex;align-items:center;padding:0 14px;gap:20px}
+.brand{font-weight:900;font-size:19px}.brand span{color:#5b94ff}.menu{display:flex;gap:3px}.menu button,.ghost{background:transparent;border:0;color:#aeb5c2;padding:8px 10px;border-radius:6px;cursor:pointer}.menu button:hover,.ghost:hover{background:#202530;color:#fff}
+.top-actions{margin-left:auto;display:flex;gap:8px}.save-top,.download{border:0;border-radius:7px;padding:9px 13px;font-weight:800;cursor:pointer}.save-top{background:#252b37;color:#fff}.download{background:#4d8dff;color:#fff}
+.toolbar{position:absolute;left:0;top:58px;bottom:0;width:52px;background:#11141a;border-right:1px solid #272c35;display:flex;align-items:center;flex-direction:column;padding:12px 7px;gap:7px;z-index:3}.tool{width:36px;height:36px;border:0;border-radius:7px;background:#171b23;color:#cdd3df;font-size:18px;cursor:pointer}.tool:hover,.tool.active{background:#2b3342;color:#fff}.tool-divider{height:1px;width:30px;background:#303641;margin:4px}.toolbar span{font-size:10px;color:#929aaa}
+.app{display:grid;grid-template-columns:270px 1fr 295px;height:calc(100vh - 58px);padding-left:52px}
+.left-panel,.right-panel{background:#10131a;overflow:auto;padding:15px}.left-panel{border-right:1px solid #272c35}.right-panel{border-left:1px solid #272c35}
+section{margin-bottom:20px}.panel-title{font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:#8992a2;font-weight:800;margin:0 0 10px}
+.ai-box{background:#171a20;border:1px solid #30394a;border-radius:10px;padding:12px}.ai-icon{font-size:25px;color:#70a2ff}.ai-title{font-weight:800;margin-top:4px}.ai-sub{font-size:11px;color:#8e97a7;line-height:1.4;margin:4px 0 10px}
+input[type=text],input[type=number],select{width:100%;background:#181c24;color:#fff;border:1px solid #303744;border-radius:6px;padding:9px;outline:none}input[type=text]:focus,select:focus{border-color:#5b94ff}
+.ai-btn,.wide-btn,.danger{width:100%;padding:9px;border-radius:7px;border:1px solid #303744;background:#1a1f28;color:#fff;font-weight:700;cursor:pointer;margin-top:7px}.ai-btn{background:#4d8dff;border-color:#4d8dff}.danger{color:#ff8e8e}.ai-presets{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:7px}.ai-presets button{border:1px solid #303744;background:#181c24;color:#cbd1dc;border-radius:6px;padding:7px;font-size:10px;cursor:pointer}
+.workspace{display:flex;align-items:center;justify-content:center;background:#0c0f14;background:#0c0f14;background-size:24px 24px;background-position:0 0,0 12px,12px -12px,-12px 0;overflow:hidden}.canvas-shell{width:min(900px,88%);aspect-ratio:16/9;box-shadow:0 18px 50px #000a;position:relative}.canvas-shell canvas{width:100%;height:100%;display:block;border:1px solid #363d49;touch-action:none}
+label{display:block;font-size:10px;color:#8f98a8;text-transform:uppercase;letter-spacing:.06em;margin:9px 0 4px}.two{display:grid;grid-template-columns:1fr 1fr;gap:7px}input[type=color]{width:100%;height:35px;border:1px solid #303744;background:#181c24;border-radius:6px;padding:2px}input[type=range]{width:100%}
+.move-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px}.move-grid button{border:1px solid #303744;background:#181c24;color:#fff;border-radius:6px;padding:8px;cursor:pointer}
+.saved{display:grid;grid-template-columns:1fr 1fr;gap:8px}.card{background:#171b23;border:1px solid #2b313c;border-radius:7px;overflow:hidden;cursor:pointer}.card img{width:100%;aspect-ratio:16/9;object-fit:cover;display:block}.card p{font-size:10px;margin:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.empty{font-size:11px;color:#747d8c;line-height:1.45}
+.layer{display:flex;align-items:center;gap:7px;background:#171b23;border:1px solid #2a303a;border-radius:6px;padding:7px;margin:5px 0;cursor:pointer;font-size:11px}.layer.selected{border-color:#4d8dff;background:#1d2738}.layer-icon{width:24px;height:20px;background:#252b35;border-radius:4px;display:flex;align-items:center;justify-content:center}.layer-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+.status-pill{font-size:10px;color:#8f98a8;padding:4px 7px;background:#181c24;border-radius:99px}
+.layer-actions{margin-left:auto;display:flex;gap:2px}.layer-actions button{border:0;background:transparent;color:#8993a4;cursor:pointer;padding:2px}
+.remover-box{border-color:#303744}.hint{font-size:10px;color:#7f8999;line-height:1.4;margin-top:8px}
+.tool[data-tip],.menu button[data-tip]{position:relative}
+.tool[data-tip]::after,.menu button[data-tip]::after{
+ content:attr(data-tip);position:absolute;left:48px;top:50%;transform:translateY(-50%);
+ background:#171b23;color:#fff;border:1px solid #343b49;border-radius:6px;
+ padding:6px 9px;font-size:11px;font-weight:600;white-space:nowrap;
+ opacity:0;pointer-events:none;transition:opacity .12s ease,transform .12s ease;
+ box-shadow:0 8px 24px #0009;z-index:100;
+}
+.tool[data-tip]:hover::after{opacity:1;transform:translateY(-50%) translateX(3px)}
+.menu button[data-tip]::after{top:42px;left:50%;transform:translateX(-50%);opacity:0}
+.menu button[data-tip]:hover::after{opacity:1;transform:translateX(-50%) translateY(3px)}
+
+#homeScreen~.topbar,#homeScreen~.toolbar,#homeScreen~.app{display:none}.editor-visible{}.home-screen{position:fixed;inset:0;z-index:200;background:#0a0c10;color:#f5f7fb;overflow:auto}
+.home-top{height:70px;border-bottom:1px solid #252a33;display:flex;align-items:center;padding:0 38px}
+.home-user{margin-left:auto;display:flex;align-items:center;gap:14px;color:#929bab;font-size:12px}
+.home-login{border:1px solid #343b48;background:#171b23;color:#fff;border-radius:7px;padding:9px 16px;cursor:pointer;font-weight:700}
+.home-content{width:min(1180px,calc(100% - 60px));margin:0 auto;padding:55px 0 70px}
+.hero{padding:45px 0 60px;border-bottom:1px solid #242a34}
+.hero-kicker{font-size:11px;letter-spacing:.18em;color:#5b94ff;font-weight:800;margin-bottom:14px}
+.hero h1{font-size:58px;line-height:1.02;margin:0;letter-spacing:-2px}
+.hero h1 span{color:#6b9cff}
+.hero p{color:#8f98a8;font-size:16px;margin:18px 0 25px}
+.new-project-big{background:#4d8dff;border:0;color:#fff;border-radius:8px;padding:13px 19px;font-weight:800;cursor:pointer}
+.recent-head{display:flex;align-items:end;justify-content:space-between;margin:34px 0 18px}
+.recent-head h2{font-size:22px;margin:0 0 4px}.recent-head p{margin:0;color:#737d8e;font-size:12px}
+.refresh-projects{border:1px solid #303744;background:#151920;color:#cbd1dc;border-radius:7px;padding:8px 12px;cursor:pointer}
+.home-projects{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.home-card{background:#11151c;border:1px solid #272e39;border-radius:10px;overflow:hidden;cursor:pointer;transition:.15s}
+.home-card:hover{border-color:#4d8dff;transform:translateY(-2px)}
+.home-card img{width:100%;aspect-ratio:16/9;object-fit:cover;display:block}
+.home-card-info{padding:11px}.home-card-name{font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.home-card-meta{font-size:10px;color:#737d8e;margin-top:5px}.delete-card{border:0;background:transparent;color:#7d8593;font-size:10px;padding:4px 0;cursor:pointer}.delete-card:hover{color:#d0d5dd}
+.no-projects{display:flex;flex-direction:column;align-items:center;justify-content:center;border:1px dashed #303744;border-radius:10px;padding:55px;color:#8b95a5;gap:7px}
+.empty-icon{width:38px;height:38px;border-radius:50%;background:#171c25;display:grid;place-items:center;font-size:22px;color:#5b94ff;margin-bottom:3px}
+.no-projects strong{color:#dbe0e8}.no-projects span{font-size:11px}
+.home-button{border:1px solid #303744;background:#171b23;color:#cbd1dc;border-radius:6px;padding:7px 11px;cursor:pointer;font-size:11px}
+.modal-backdrop{position:fixed;inset:0;background:#000b;z-index:500;display:flex;align-items:center;justify-content:center}
+.login-card{position:relative;width:370px;background:#11151c;border:1px solid #303744;border-radius:12px;padding:30px;box-shadow:0 18px 50px #000a}
+.login-logo{font-weight:900;font-size:18px;margin-bottom:22px}.login-logo span{color:#5b94ff}
+.login-card h2{margin:0 0 7px;font-size:25px}.login-card p{font-size:12px;color:#7f8999;line-height:1.5;margin:0 0 20px}
+.login-card label{margin-top:0}.login-card input{margin-bottom:9px}
+.login-submit{width:100%;border:0;background:#4d8dff;color:#fff;padding:11px;border-radius:7px;font-weight:800;cursor:pointer}
+.close-login{position:absolute;right:12px;top:10px;border:0;background:transparent;color:#8791a1;font-size:24px;cursor:pointer}
+.login-note{font-size:10px;color:#666f7e;text-align:center;margin-top:13px}
+@media(max-width:900px){.home-projects{grid-template-columns:repeat(2,1fr)}.hero h1{font-size:43px}}
+
+.google-card{width:390px;background:#fff;color:#202124;border:1px solid #dadce0;border-radius:12px;padding:32px;box-shadow:0 16px 45px #0007}
+.google-card h2{font-size:24px;font-weight:400;color:#202124;margin:14px 0 8px}
+.google-card p{color:#5f6368;font-size:14px;line-height:1.45;margin:0 0 22px}
+.google-mark{font-family:Arial,sans-serif;font-size:30px;font-weight:800;color:#4285f4}
+.google-signin{width:100%;height:44px;border:1px solid #dadce0;border-radius:6px;background:#fff;color:#3c4043;font-weight:600;display:flex;align-items:center;justify-content:center;gap:12px;cursor:pointer}
+.google-signin:hover{background:#f8f9fa;box-shadow:0 1px 2px #0002}
+.google-g{font-size:20px;font-weight:800;color:#4285f4}
+.google-divider{display:flex;align-items:center;gap:10px;color:#80868b;font-size:12px;margin:20px 0}
+.google-divider:before,.google-divider:after{content:"";height:1px;background:#dadce0;flex:1}
+.google-card label{color:#5f6368;text-transform:none;letter-spacing:0;font-size:12px}
+.google-card input{background:#fff;color:#202124;border:1px solid #dadce0;height:44px;margin:5px 0 12px}
+.google-card input:focus{border:2px solid #1a73e8}
+.google-card .login-submit{background:#1a73e8;height:42px}
+.google-card .login-note{color:#70757a}
+</style>
+</head>
+<body>
+<input id="imageInput" type="file" accept="image/*" hidden onchange="uploadImage(event)">
+
+<div id="homeScreen" class="home-screen">
+  <div class="home-top">
+    <div class="brand">Sleepy<span>Studio</span></div><button class="home-button" onclick="showHome()">Home</button>
+    <div class="home-user">
+      <span id="homeUserName">Not signed in</span>
+      <button class="home-login" onclick="openLogin()">Sign in with Google</button>
+    </div>
+  </div>
+
+  <div class="home-content">
+    <div class="hero">
+      <div class="hero-kicker">THUMBNAIL STUDIO</div>
+      <h1>Create thumbnails<br><span>that stand out.</span></h1>
+      <p>Build, save, and reopen your YouTube thumbnails in one place.</p>
+      <button class="new-project-big" onclick="startNewFromHome()">Create New Thumbnail</button>
+    </div>
+
+    <div class="recent-head">
+      <div>
+        <h2>Recent projects</h2>
+        <p>Pick up where you left off.</p>
+      </div>
+      <button class="refresh-projects" onclick="showHomeProjects()">Refresh</button>
+    </div>
+    <div id="homeProjects" class="home-projects"></div>
+    <div id="noProjects" class="no-projects">
+      <div class="empty-icon">＋</div>
+      <strong>No projects yet</strong>
+      <span>Create your first thumbnail to see it here.</span>
+    </div>
+  </div>
+</div>
+
+<div id="loginModal" class="modal-backdrop" style="display:none" onclick="if(event.target===this)closeLogin()">
+  <div class="login-card google-card">
+    <button class="close-login" onclick="closeLogin()">×</button>
+    <div class="google-mark">G</div>
+    <h2>Sign in with Google</h2>
+    <p>Use your Google account to sign in to Sleepy Studio.</p>
+    <button class="google-signin" onclick="googleDemoLogin()">
+      <span class="google-g">G</span>
+      <span>Continue with Google</span>
+    </button>
+    <div class="google-divider"><span>or</span></div>
+    <label>Gmail address</label>
+    <input id="loginName" type="email" placeholder="you@gmail.com" autocomplete="email">
+    <button class="login-submit" onclick="gmailDemoLogin()">Continue</button>
+    <div class="login-note">Google-style sign-in for this local version. Real Google OAuth requires a Google Cloud client ID and a hosted website.</div>
+  </div>
+</div>
+</div>
+
+<header class="topbar">
+  <div class="brand">Sleepy<span>Studio</span></div>
+  <div class="menu">
+<button data-tip="New Project" onclick="newProject()">File</button>
+<button data-tip="Undo" onclick="undo()">Edit</button>
+<button data-tip="Fit Canvas" onclick="fitCanvas()">Image</button>
+<button data-tip="Duplicate Layer" onclick="duplicateSelected()">Layer</button>
+<button data-tip="Keyboard Shortcuts" onclick="showHelp()">Help</button>
+</div>
+  <div class="top-actions">
+    <button class="ghost" onclick="newProject()">New</button>
+    <button class="save-top" onclick="saveThumbnail()">Save</button>
+    <button class="download" onclick="downloadPNG()">Export PNG</button>
+  </div>
+</header>
+
+<div class="toolbar">
+  <button data-tip="Move Tool" class="tool active" onclick="setTool('move',this)">↖</button>
+  <button data-tip="Text Tool" class="tool" onclick="addText()">T</button>
+  <button data-tip="Add Image" class="tool" onclick="document.getElementById('imageInput').click()">▧</button>
+  <button data-tip="Rectangle Tool" class="tool" onclick="addShape()">□</button>
+  <button data-tip="Duplicate Layer" class="tool" onclick="duplicateSelected()">⧉</button>
+  <button data-tip="Undo" class="tool" onclick="undo()">↶</button>
+  <button data-tip="Redo" class="tool" onclick="redo()">↷</button>
+  <div class="tool-divider"></div>
+  <button class="tool" data-tip="Zoom Out" onclick="zoom(-.1)">−</button><span id="zoomLabel">100%</span><button class="tool" data-tip="Zoom In" onclick="zoom(.1)">＋</button>
+  <button class="tool" data-tip="Fit Canvas" onclick="fitCanvas()">⛶</button>
+</div>
+
+<div class="app">
+  <aside class="left-panel">
+<section>
+      <div class="panel-title">Saved Thumbnails</div>
+      <div id="savedList" class="saved"></div>
+      <div id="empty" class="empty">Saved thumbnails appear here.</div>
+    </section>
+  </aside>
+
+  <main class="workspace">
+    <div class="canvas-shell">
+      <canvas id="canvas" width="1280" height="720"></canvas>
+    </div>
+  </main>
+
+  <aside class="right-panel">
+    <section>
+      <div class="panel-title">Properties</div>
+      <div id="noSelection" class="empty">Select a layer to edit it.</div>
+      <div id="textProps" style="display:none">
+        <label>Text</label><input id="editText" type="text" oninput="updateSelected()">
+        <div class="two"><div><label>Size</label><input id="fontSize" type="number" min="10" max="300" value="100" oninput="updateSelected()"></div>
+        <div><label>Font</label><select id="fontFamily" onchange="updateSelected()"><option>Arial Black</option><option>Impact</option><option>Arial</option><option>Verdana</option><option>Georgia</option></select></div></div>
+        <label>Fill</label><input id="textColor" type="color" value="#ffffff" onchange="updateSelected()">
+        <label>Outline</label><input id="strokeColor" type="color" value="#000000" onchange="updateSelected()">
+        <label>Outline Width</label><input id="strokeWidth" type="range" min="0" max="30" value="12" oninput="updateSelected()">
+        <label>Glow</label><input id="glow" type="range" min="0" max="50" value="0" oninput="updateSelected()">
+      </div>
+      <div id="shapeProps" style="display:none">
+        <label>Shape Color</label><input id="shapeColor" type="color" value="#4d8dff" onchange="updateSelected()">
+      </div>
+      <button id="layerNameButton" class="wide-btn" onclick="renameSelected()">Rename Layer</button>
+      <div id="imageProps" style="display:none">
+        <label>Opacity</label><input id="imgOpacity" type="range" min="0" max="100" value="100" oninput="updateSelected()">
+      </div>
+    </section>
+
+    <section>
+      <div class="panel-title">Canvas</div>
+      <label>Background</label><input id="canvasBg" type="color" value="#161a22" onchange="setCanvasBg(this.value)">
+      <button class="wide-btn" onclick="setCanvasBg('#161a22')">Dark</button>
+      <button class="wide-btn" onclick="setCanvasBg('#ffffff')">White</button>
+      <button class="wide-btn" onclick="setCanvasBg('#000000')">Black</button>
+    </section>
+
+    <section>
+      <div class="panel-title">Size</div>
+      <div class="two">
+        <div><label>Width</label><input id="objWidth" type="number" min="10" max="3000" oninput="resizeSelectedFromInputs()"></div>
+        <div><label>Height</label><input id="objHeight" type="number" min="10" max="3000" oninput="resizeSelectedFromInputs()"></div>
+      </div>
+      <button class="wide-btn" onclick="scaleSelected(1.1)">+ 10% Bigger</button>
+      <button class="wide-btn" onclick="scaleSelected(.9)">− 10% Smaller</button>
+    </section>
+
+    <section>
+      <div class="panel-title">Transform</div>
+      <div class="move-grid">
+        <button onclick="move(-10,0)">←</button><button onclick="move(0,-10)">↑</button><button onclick="move(0,10)">↓</button><button onclick="move(10,0)">→</button>
+      </div>
+      <button class="danger" onclick="deleteSelected()">Delete Layer</button>
+    </section>
+
+    <section>
+      <div class="panel-title">Layers</div>
+      <div id="layers"></div>
+    </section>
+  </aside>
+</div>
+
+<script>
+function showHome(){
+  document.getElementById('homeScreen').style.display='block';
+  document.querySelector('.topbar').style.display='none';document.querySelector('.toolbar').style.display='none';document.querySelector('.app').style.display='none';
+  showHomeProjects();
+}
+function hideHome(){
+  document.getElementById('homeScreen').style.display='none';
+  document.querySelector('.topbar').style.display='flex';document.querySelector('.toolbar').style.display='flex';document.querySelector('.app').style.display='grid';
+}
+function startNewFromHome(){
+  hideHome();
+  newProject();
+}
+function openLogin(){
+  document.getElementById('loginModal').style.display='flex';
+  setTimeout(()=>document.getElementById('loginName').focus(),50);
+}
+function closeLogin(){document.getElementById('loginModal').style.display='none'}
+function googleDemoLogin(){
+  const saved=localStorage.getItem('sleepyStudioGmail')||'Google User';
+  localStorage.setItem('sleepyStudioUser',saved);
+  updateHomeUser();closeLogin();
+}
+function gmailDemoLogin(){
+  const email=document.getElementById('loginName').value.trim();
+  if(!email)return;
+  if(!email.toLowerCase().endsWith('@gmail.com')){
+    alert('Please enter a Gmail address ending in @gmail.com');
+    return;
+  }
+  localStorage.setItem('sleepyStudioGmail',email);
+  localStorage.setItem('sleepyStudioUser',email);
+  updateHomeUser();closeLogin();
+}
+function updateHomeUser(){
+  const name=localStorage.getItem('sleepyStudioUser');
+  document.getElementById('homeUserName').textContent=name||'Not signed in';
+  document.querySelector('.home-login').textContent=name?'Google Account':'Sign in with Google';
+}
+function showHomeProjects(){
+  const saves=JSON.parse(localStorage.getItem('sleepyThumbs')||'[]');
+  const box=document.getElementById('homeProjects'),empty=document.getElementById('noProjects');
+  empty.style.display=saves.length?'none':'flex';
+  box.innerHTML=saves.map((s,i)=>`
+    <div class="home-card" onclick="openHomeProject(${i})">
+      <img src="${s.img}" alt="">
+      <div class="home-card-info">
+        <div class="home-card-name">${escapeHtml(s.name)}</div>
+        <div class="home-card-meta">Saved thumbnail</div><button class="delete-card" onclick="deleteSaved(${i},event)">Delete</button>
+      </div>
+    </div>`).join('');
+}
+function openHomeProject(i){
+  hideHome();
+  loadSaved(i);
+}
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape')closeLogin();
+});
+updateHomeUser();
+showHomeProjects();
+showHome();
+</script>
+<script>
+const c=document.getElementById('canvas'),ctx=c.getContext('2d');
+let objects=[],selected=null,dragging=false,dragOff={x:0,y:0},tool='move',zoomLevel=1;
+let canvasBg='#161a22', history=[],historyIndex=-1, restoring=false;
+
+function snapshot(){
+  if(restoring)return;
+  const data=objects.map(o=>({type:o.type,text:o.text,x:o.x,y:o.y,size:o.size,font:o.font,color:o.color,stroke:o.stroke,sw:o.sw,glow:o.glow,w:o.w,h:o.h,opacity:o.opacity,shapeColor:o.color,
+    src:o.type==='image'&&o.img?o.img.src:null}));
+  history=history.slice(0,historyIndex+1); history.push(JSON.stringify({objects:data,canvasBg}));
+  if(history.length>40)history.shift(); else historyIndex++;
+  if(history.length===1)historyIndex=0;
+}
+function restoreState(raw){
+  restoring=true; const s=JSON.parse(raw); canvasBg=s.canvasBg||'#161a22'; objects=[];
+  let pending=0;
+  s.objects.forEach(d=>{
+    if(d.type==='image'&&d.src){pending++;let img=new Image();img.onload=()=>{objects.push({...d,img});pending--;if(!pending){restoring=false;render();syncControls();showLayers()}};img.src=d.src}
+    else objects.push({...d});
+  });
+  if(!pending){restoring=false;render();syncControls();showLayers()}
+}
+function undo(){if(historyIndex<=0)return;historyIndex--;restoreState(history[historyIndex])}
+function redo(){if(historyIndex>=history.length-1)return;historyIndex++;restoreState(history[historyIndex])}
+function newProject(){objects=[];selected=null;canvasBg='#161a22';document.getElementById('canvasBg').value=canvasBg;history=[];historyIndex=-1;snapshot();render();syncControls();showLayers()}
+function setTool(t,el){tool=t;document.querySelectorAll('.tool').forEach(x=>x.classList.remove('active'));if(el)el.classList.add('active')}
+function addText(t){
+ let text=t||prompt('Text for your thumbnail:','NEW VIDEO');if(!text)return;
+ let o={type:'text',text,x:640,y:360,size:105,font:'Arial Black',color:'#fff',stroke:'#000',sw:14,glow:8};
+ objects.push(o);selected=o;snapshot();render();syncControls();showLayers()
+}
+function addShape(){let o={type:'shape',x:640,y:360,w:450,h:170,color:'#4d8dff'};objects.push(o);selected=o;snapshot();render();syncControls();showLayers()}
+function uploadImage(e){
+ const file=e.target.files?.[0];
+ if(!file)return;
+ if(!file.type.startsWith('image/')){alert('Please choose an image file.');e.target.value='';return;}
+ const url=URL.createObjectURL(file),img=new Image();
+ img.onload=()=>{
+   const scale=Math.min(1000/img.width,600/img.height,1);
+   const o={type:'image',img,x:640,y:360,w:img.width*scale,h:img.height*scale,opacity:1,customName:file.name};
+   objects.push(o);selected=o;snapshot();render();syncControls();showLayers();
+   URL.revokeObjectURL(url);
+ };
+ img.onerror=()=>{alert('That image could not be loaded. Try a PNG or JPG.');URL.revokeObjectURL(url)};
+ img.src=url;e.target.value='';
+}
+function render(){
+ ctx.clearRect(0,0,c.width,c.height);
+ ctx.fillStyle=canvasBg;ctx.fillRect(0,0,1280,720);
+ objects.forEach(o=>{
+  if(o.hidden)return;
+  if(o.type==='image'){ctx.save();ctx.globalAlpha=o.opacity??1;ctx.drawImage(o.img,o.x-o.w/2,o.y-o.h/2,o.w,o.h);ctx.restore()}
+  else if(o.type==='shape'){ctx.save();ctx.fillStyle=o.color;ctx.fillRect(o.x-o.w/2,o.y-o.h/2,o.w,o.h);ctx.restore()}
+  else{ctx.save();ctx.font=`900 ${o.size}px "${o.font}"`;ctx.textAlign='center';ctx.textBaseline='middle';if(o.sw){ctx.lineWidth=o.sw;ctx.strokeStyle=o.stroke;ctx.strokeText(o.text,o.x,o.y)}ctx.fillStyle=o.color;ctx.fillText(o.text,o.x,o.y);ctx.restore()}
+ });
+ if(selected && !selected.hidden){
+   ctx.save();
+   const b=getBounds(selected);
+   ctx.strokeStyle='#7b3cff';ctx.lineWidth=3;ctx.setLineDash([]);
+   ctx.strokeRect(b.x,b.y,b.w,b.h);
+   const hs=10;
+   const pts=[
+     [b.x,b.y],[b.x+b.w/2,b.y],[b.x+b.w,b.y],
+     [b.x,b.y+b.h/2],[b.x+b.w,b.y+b.h/2],
+     [b.x,b.y+b.h],[b.x+b.w/2,b.y+b.h],[b.x+b.w,b.y+b.h]
+   ];
+   pts.forEach(([x,y])=>{
+     ctx.fillStyle='#fff';ctx.strokeStyle='#bfc4cc';ctx.lineWidth=1.5;
+     ctx.beginPath();ctx.roundRect(x-hs/2,y-hs/2,hs,hs,3);ctx.fill();ctx.stroke();
+   });
+   ctx.restore();
+ }
+}
+function getBounds(o){if(o.type==='image'||o.type==='shape')return{x:o.x-o.w/2,y:o.y-o.h/2,w:o.w,h:o.h};ctx.save();ctx.font=`900 ${o.size}px "${o.font}"`;let w=ctx.measureText(o.text).width;ctx.restore();return{x:o.x-w/2-18,y:o.y-o.size/2-18,w:w+36,h:o.size+36}}
+function hit(x,y,o){let b=getBounds(o);return !o.hidden&&x>=b.x&&x<=b.x+b.w&&y>=b.y&&y<=b.y+b.h}
+function pointer(e){let r=c.getBoundingClientRect();return{x:(e.clientX-r.left)*c.width/r.width,y:(e.clientY-r.top)*c.height/r.height}}
+let resizing=false,resizeCorner=null,resizeStart=null;
+function resizeHandleAt(p,b){
+ const hs=18;
+ const pts=[
+   ['nw',b.x,b.y],['n',b.x+b.w/2,b.y],['ne',b.x+b.w,b.y],
+   ['w',b.x,b.y+b.h/2],['e',b.x+b.w,b.y+b.h/2],
+   ['sw',b.x,b.y+b.h],['s',b.x+b.w/2,b.y+b.h],['se',b.x+b.w,b.y+b.h]
+ ];
+ for(const [name,x,y] of pts)if(Math.abs(p.x-x)<=hs&&Math.abs(p.y-y)<=hs)return name;
+ return null;
+}
+c.addEventListener('pointerdown',e=>{
+ let p=pointer(e);
+ if(selected && !selected.hidden){
+   const b=getBounds(selected), corner=resizeHandleAt(p,b);
+   if(corner){
+     resizing=true;resizeCorner=corner;
+     resizeStart={x:p.x,y:p.y,w:b.w,h:b.h,ox:selected.x,oy:selected.y};
+     return;
+   }
+ }
+ for(let i=objects.length-1;i>=0;i--)if(hit(p.x,p.y,objects[i])){
+   selected=objects[i];dragging=true;dragOff={x:p.x-selected.x,y:p.y-selected.y};
+   syncControls();showLayers();render();return;
+ }
+ selected=null;syncControls();showLayers();render();
+});
+window.addEventListener('pointermove',e=>{
+ let p=pointer(e);
+ if(resizing&&selected){
+   const b0=resizeStart;
+   let w=b0.w,h=b0.h,dx=p.x-b0.x,dy=p.y-b0.y;
+   if(resizeCorner.includes('e'))w=Math.max(10,b0.w+dx);
+   if(resizeCorner.includes('w'))w=Math.max(10,b0.w-dx);
+   if(resizeCorner.includes('s'))h=Math.max(10,b0.h+dy);
+   if(resizeCorner.includes('n'))h=Math.max(10,b0.h-dy);
+   const oldW=b0.w,oldH=b0.h;
+   if(selected.type==='text'){
+     const ratio=Math.max(w/oldW,h/oldH);
+     const r2=Math.min(w/oldW,h/oldH);
+     const factor=(resizeCorner.length===2)?Math.max(.05,ratio):Math.max(.05,(w/oldW+h/oldH)/2);
+     selected.size=Math.max(10,Math.min(300,selected.size*factor));
+   }else{
+     selected.w=w;selected.h=h;
+     if(resizeCorner.includes('w'))selected.x=b0.ox+dx/2;
+     if(resizeCorner.includes('e'))selected.x=b0.ox+dx/2;
+     if(resizeCorner.includes('n'))selected.y=b0.oy+dy/2;
+     if(resizeCorner.includes('s'))selected.y=b0.oy+dy/2;
+   }
+   syncControls();render();return;
+ }
+ if(!dragging||!selected)return;
+ selected.x=p.x-dragOff.x;selected.y=p.y-dragOff.y;render();
+});
+window.addEventListener('pointerup',()=>{
+ if(resizing||dragging)snapshot();
+ resizing=false;resizeCorner=null;dragging=false;
+});
+
+function syncControls(){
+ document.getElementById('noSelection').style.display=selected?'none':'block';
+ ['textProps','shapeProps','imageProps'].forEach(id=>document.getElementById(id).style.display='none');
+ if(!selected){syncSizeInputs();return;}
+ syncSizeInputs();
+ if(selected.type==='text'){document.getElementById('textProps').style.display='block';document.getElementById('editText').value=selected.text;document.getElementById('fontSize').value=selected.size;document.getElementById('fontFamily').value=selected.font;document.getElementById('textColor').value=selected.color;document.getElementById('strokeColor').value=selected.stroke;document.getElementById('strokeWidth').value=selected.sw;document.getElementById('glow').value=selected.glow}
+ if(selected.type==='shape'){document.getElementById('shapeProps').style.display='block';document.getElementById('shapeColor').value=selected.color}
+ if(selected.type==='image'){document.getElementById('imageProps').style.display='block';document.getElementById('imgOpacity').value=(selected.opacity??1)*100}
+}
+function selectedSize(){
+ if(!selected)return {w:0,h:0};
+ const b=getBounds(selected);return {w:Math.round(b.w),h:Math.round(b.h)};
+}
+function syncSizeInputs(){
+ const w=document.getElementById('objWidth'),h=document.getElementById('objHeight');
+ if(!w||!h)return;
+ if(!selected){w.value='';h.value='';return}
+ const s=selectedSize();w.value=s.w;h.value=s.h;
+}
+function resizeSelectedFromInputs(){
+ if(!selected)return;
+ const w=Math.max(10,+document.getElementById('objWidth').value||10);
+ const h=Math.max(10,+document.getElementById('objHeight').value||10);
+ const b=getBounds(selected);
+ if(selected.type==='text'){
+   const factor=Math.min(w/b.w,h/b.h);
+   selected.size=Math.max(10,Math.min(300,selected.size*factor));
+ }else{
+   selected.w=w;selected.h=h;
+ }
+ render();syncSizeInputs();showLayers();
+}
+function scaleSelected(f){
+ if(!selected)return;
+ if(selected.type==='text')selected.size=Math.max(10,Math.min(300,selected.size*f));
+ else{selected.w=Math.max(10,selected.w*f);selected.h=Math.max(10,selected.h*f)}
+ snapshot();render();syncControls();syncSizeInputs();
+}
+
+function updateSelected(){
+ if(!selected)return;
+ if(selected.type==='text'){selected.text=document.getElementById('editText').value;selected.size=+document.getElementById('fontSize').value;selected.font=document.getElementById('fontFamily').value;selected.color=document.getElementById('textColor').value;selected.stroke=document.getElementById('strokeColor').value;selected.sw=+document.getElementById('strokeWidth').value;selected.glow=+document.getElementById('glow').value}
+ else if(selected.type==='shape')selected.color=document.getElementById('shapeColor').value;
+ else if(selected.type==='image')selected.opacity=+document.getElementById('imgOpacity').value/100;
+ render();showLayers()
+}
+function move(dx,dy){if(selected){selected.x+=dx;selected.y+=dy;snapshot();render()}}
+function deleteSelected(){if(selected){objects=objects.filter(o=>o!==selected);selected=null;snapshot();render();syncControls();showLayers()}}
+function duplicateSelected(){
+ if(!selected)return;let i=objects.indexOf(selected),copy={...selected,x:selected.x+35,y:selected.y+35};
+ if(selected.type==='image')copy.img=selected.img;
+ objects.splice(i+1,0,copy);selected=copy;snapshot();render();syncControls();showLayers()
+}
+function bringForward(){if(!selected)return;let i=objects.indexOf(selected);if(i<objects.length-1){[objects[i],objects[i+1]]=[objects[i+1],objects[i]];snapshot();showLayers();render()}}
+function sendBackward(){if(!selected)return;let i=objects.indexOf(selected);if(i>0){[objects[i],objects[i-1]]=[objects[i-1],objects[i]];snapshot();showLayers();render()}}
+function clearCanvas(){if(!confirm('Clear all layers?'))return;objects=[];selected=null;snapshot();render();syncControls();showLayers()}
+function setCanvasBg(v){canvasBg=v;document.getElementById('canvasBg').value=v;snapshot();render()}
+function zoom(d){zoomLevel=Math.max(.5,Math.min(1.5,zoomLevel+d));document.getElementById('zoomLabel').textContent=Math.round(zoomLevel*100)+'%';document.querySelector('.canvas-shell').style.transform=`scale(${zoomLevel})`}
+function fitCanvas(){zoomLevel=1;document.getElementById('zoomLabel').textContent='100%';document.querySelector('.canvas-shell').style.transform='scale(1)'}
+function downloadPNG(){let a=document.createElement('a');a.download='thumbnail.png';a.href=c.toDataURL('image/png');a.click()}
+function saveThumbnail(){
+  let name=prompt('Name this thumbnail:','My Thumbnail');if(!name)return;
+  let saves=JSON.parse(localStorage.getItem('sleepyThumbs')||'[]');
+  let project={version:2,canvasBg,objects:objects.map(o=>({
+    type:o.type,text:o.text,x:o.x,y:o.y,size:o.size,font:o.font,color:o.color,stroke:o.stroke,sw:o.sw,
+    glow:o.glow,w:o.w,h:o.h,opacity:o.opacity,hidden:o.hidden,customName:o.customName,
+    src:o.type==='image'&&o.img?o.img.src:null
+  }))};
+  saves.unshift({name,img:c.toDataURL('image/jpeg',.92),project});
+  saves=saves.slice(0,40);localStorage.setItem('sleepyThumbs',JSON.stringify(saves));showSaved();
+}
+function deleteSaved(i,e){if(e)e.stopPropagation();let saves=JSON.parse(localStorage.getItem('sleepyThumbs')||'[]');saves.splice(i,1);localStorage.setItem('sleepyThumbs',JSON.stringify(saves));showSaved();showHomeProjects()}
+function showSaved(){let saves=JSON.parse(localStorage.getItem('sleepyThumbs')||'[]');document.getElementById('empty').style.display=saves.length?'none':'block';document.getElementById('savedList').innerHTML=saves.map((s,i)=>`<div class="card" onclick="loadSaved(${i})"><img src="${s.img}"><p>${escapeHtml(s.name)}</p><button class="delete-card" onclick="deleteSaved(${i},event)">Delete</button></div>`).join('')}
+function loadSaved(i){
+  let saves=JSON.parse(localStorage.getItem('sleepyThumbs')||'[]'), item=saves[i];
+  if(!item)return;
+  if(!item.project){hideHome();let img=new Image();img.onload=()=>{objects=[{type:'image',img,x:640,y:360,w:1280,h:720,opacity:1}];selected=null;render();syncControls();showLayers();snapshot()};img.src=item.img;return}
+  hideHome();let s=item.project;canvasBg=s.canvasBg||'#161a22';document.getElementById('canvasBg').value=canvasBg;
+  objects=[];let pending=0;
+  s.objects.forEach(d=>{
+    if(d.type==='image'&&d.src){
+      pending++;let img=new Image();
+      img.onload=()=>{objects.push({...d,img});if(!--pending){selected=null;render();syncControls();showLayers();snapshot()}};
+      img.src=d.src;
+    }else objects.push({...d});
+  });
+  if(!pending){selected=null;render();syncControls();showLayers();snapshot()}
+}
+function showLayers(){
+ let el=document.getElementById('layers');el.innerHTML='';
+ [...objects].reverse().forEach(o=>{
+  let d=document.createElement('div');d.className='layer '+(o===selected?'selected':'');
+  d.onclick=()=>{selected=o;syncControls();showLayers();render()};
+  let name=o.customName||(o.type==='text'?o.text:(o.type==='image'?'Image':'Shape'));
+  d.innerHTML=`<div class="layer-icon">${o.type==='text'?'T':o.type==='image'?'▧':'□'}</div><div class="layer-name">${escapeHtml(name)}</div><div class="layer-actions"><button title="Toggle visibility" onclick="event.stopPropagation();toggleLayer(${objects.indexOf(o)})">◉</button></div>`;
+  el.appendChild(d)
+ })
+}
+function toggleLayer(i){if(objects[i]){objects[i].hidden=!objects[i].hidden;snapshot();render();showLayers()}}
+function saveProject(){
+ let data={version:2,canvasBg,objects:objects.map(o=>({type:o.type,text:o.text,x:o.x,y:o.y,size:o.size,font:o.font,color:o.color,stroke:o.stroke,sw:o.sw,glow:o.glow,w:o.w,h:o.h,opacity:o.opacity,hidden:o.hidden,src:o.type==='image'&&o.img?o.img.src:null}))};
+ let blob=new Blob([JSON.stringify(data)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='sleepy-thumbnail-project.json';a.click()
+}
+function loadProject(e){
+ let file=e.target.files[0];if(!file)return;let r=new FileReader();r.onload=()=>{let s=JSON.parse(r.result);canvasBg=s.canvasBg||'#161a22';document.getElementById('canvasBg').value=canvasBg;objects=[];let pending=0;
+ s.objects.forEach(d=>{if(d.type==='image'&&d.src){pending++;let img=new Image();img.onload=()=>{objects.push({...d,img});if(!--pending){render();syncControls();showLayers();snapshot()}};img.src=d.src}else objects.push({...d})});
+ if(!pending){render();syncControls();showLayers();snapshot()}
+ };r.readAsText(file);e.target.value=''
+}
+
+function selectAllLayers(){
+  if(!objects.length){alert('There are no layers yet.');return}
+  selected=objects[objects.length-1];syncControls();showLayers();render();
+}
+function resetCanvas(){
+  if(!confirm('Reset the canvas?'))return;
+  objects=[];canvasBg='#161a22';document.getElementById('canvasBg').value=canvasBg;
+  selected=null;snapshot();render();syncControls();showLayers();
+}
+function exportJPG(){
+  const a=document.createElement('a');a.download='thumbnail.jpg';a.href=c.toDataURL('image/jpeg',0.95);a.click();
+}
+function renameSelected(){
+  if(!selected){alert('Select a layer first.');return}
+  if(selected.type==='text'){
+    const v=prompt('Rename text:',selected.text);if(v!==null&&v.trim()){selected.text=v.trim();snapshot();render();syncControls();showLayers()}
+  }else{
+    const v=prompt('Layer name:',selected.type==='image'?'Image':'Shape');
+    if(v) selected.customName=v;
+    showLayers();
+  }
+}
+function showHelp(){alert('Sleepy Studio shortcuts:\\n\\nCtrl/Cmd + Z = Undo\\nCtrl/Cmd + Shift + Z = Redo\\nCtrl/Cmd + S = Save project\\nDelete/Backspace = Delete selected layer\\nArrow keys = Move selected layer\\nShift + Arrow = Move faster\\n\\nDrag layers directly on the canvas.')}
+function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
+window.addEventListener('keydown',e=>{
+ const mod=e.ctrlKey||e.metaKey;
+ if(mod&&e.key.toLowerCase()==='z'){e.preventDefault();e.shiftKey?redo():undo();return}
+ if(mod&&e.key.toLowerCase()==='s'){e.preventDefault();saveProject();return}
+ if(!selected)return;
+ if(e.key==='Delete'||e.key==='Backspace'){e.preventDefault();deleteSelected();return}
+ const step=e.shiftKey?25:5;
+ if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key)){e.preventDefault();if(e.key==='ArrowLeft')selected.x-=step;if(e.key==='ArrowRight')selected.x+=step;if(e.key==='ArrowUp')selected.y-=step;if(e.key==='ArrowDown')selected.y+=step;snapshot();render()}
+});
+showSaved();showLayers();snapshot();render();
+</script></body>
+</html>
