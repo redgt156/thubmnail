@@ -84,7 +84,7 @@ label{display:block;font-size:10px;color:#8f98a8;text-transform:uppercase;letter
 .google-card input:focus{border:2px solid #1a73e8}
 .google-card .login-submit{background:#1a73e8;height:42px}
 .google-card .login-note{color:#70757a}
-</style>
+.check-row{display:flex!important;align-items:center;gap:7px;font-size:11px!important;color:#8b95a5!important;margin-top:9px}.check-row input{width:14px!important;height:14px!important;margin:0!important}</style>
 </head>
 <body>
 <input id="imageInput" type="file" accept="image/*" hidden onchange="uploadImage(event)">
@@ -221,6 +221,7 @@ label{display:block;font-size:10px;color:#8f98a8;text-transform:uppercase;letter
         <div><label>Width</label><input id="objWidth" type="number" min="10" max="3000" oninput="resizeSelectedFromInputs()"></div>
         <div><label>Height</label><input id="objHeight" type="number" min="10" max="3000" oninput="resizeSelectedFromInputs()"></div>
       </div>
+      <label class="check-row"><input id="lockRatio" type="checkbox" checked> Lock aspect ratio</label>
       <button class="wide-btn" onclick="scaleSelected(1.1)">+ 10% Bigger</button>
       <button class="wide-btn" onclick="scaleSelected(.9)">− 10% Smaller</button>
     </section>
@@ -391,6 +392,17 @@ function resizeHandleAt(p,b){
  for(const [name,x,y] of pts)if(Math.abs(p.x-x)<=hs&&Math.abs(p.y-y)<=hs)return name;
  return null;
 }
+
+c.addEventListener('pointermove',e=>{
+ if(resizing)return;
+ const p=pointer(e);
+ if(selected&&!selected.hidden){
+   const b=getBounds(selected), h=resizeHandleAt(p,b);
+   const cursors={nw:'nwse-resize',se:'nwse-resize',ne:'nesw-resize',sw:'nesw-resize',
+                  n:'ns-resize',s:'ns-resize',e:'ew-resize',w:'ew-resize'};
+   c.style.cursor=h?(cursors[h]||'default'):(hit(p.x,p.y,selected)?'move':'default');
+ }else c.style.cursor='default';
+});
 c.addEventListener('pointerdown',e=>{
  let p=pointer(e);
  if(selected && !selected.hidden){
@@ -410,24 +422,67 @@ c.addEventListener('pointerdown',e=>{
 window.addEventListener('pointermove',e=>{
  let p=pointer(e);
  if(resizing&&selected){
-   const b0=resizeStart;
-   let w=b0.w,h=b0.h,dx=p.x-b0.x,dy=p.y-b0.y;
-   if(resizeCorner.includes('e'))w=Math.max(10,b0.w+dx);
-   if(resizeCorner.includes('w'))w=Math.max(10,b0.w-dx);
-   if(resizeCorner.includes('s'))h=Math.max(10,b0.h+dy);
-   if(resizeCorner.includes('n'))h=Math.max(10,b0.h-dy);
-   const oldW=b0.w,oldH=b0.h;
-   if(selected.type==='text'){
-     const ratio=Math.max(w/oldW,h/oldH);
-     const r2=Math.min(w/oldW,h/oldH);
-     const factor=(resizeCorner.length===2)?Math.max(.05,ratio):Math.max(.05,(w/oldW+h/oldH)/2);
-     selected.size=Math.max(10,Math.min(300,selected.size*factor));
+   const s=resizeStart, c=resizeCorner, ratio=s.w/s.h;
+   const min=10;
+   let newW=s.w,newH=s.h;
+
+   // Always preserve the original proportions.
+   // Corners and side handles all resize proportionally.
+   if(c==='e'){
+     newW=Math.max(min,s.w+(p.x-s.x));
+     newH=newW/ratio;
+     selected.x=(s.ox-s.w/2)+newW/2;
+     selected.y=s.oy;
+   }else if(c==='w'){
+     newW=Math.max(min,s.w-(p.x-s.x));
+     newH=newW/ratio;
+     selected.x=(s.ox+s.w/2)-newW/2;
+     selected.y=s.oy;
+   }else if(c==='s'){
+     newH=Math.max(min,s.h+(p.y-s.y));
+     newW=newH*ratio;
+     selected.y=(s.oy-s.h/2)+newH/2;
+     selected.x=s.ox;
+   }else if(c==='n'){
+     newH=Math.max(min,s.h-(p.y-s.y));
+     newW=newH*ratio;
+     selected.y=(s.oy+s.h/2)-newH/2;
+     selected.x=s.ox;
    }else{
-     selected.w=w;selected.h=h;
-     if(resizeCorner.includes('w'))selected.x=b0.ox+dx/2;
-     if(resizeCorner.includes('e'))selected.x=b0.ox+dx/2;
-     if(resizeCorner.includes('n'))selected.y=b0.oy+dy/2;
-     if(resizeCorner.includes('s'))selected.y=b0.oy+dy/2;
+     // Corner resize: use the larger pointer movement and keep ratio.
+     let dx=p.x-s.x,dy=p.y-s.y;
+     let amount=Math.abs(dx)>=Math.abs(dy) ? dx : dy;
+     if(c.includes('w')) amount=-amount;
+     if(c.includes('n') && Math.abs(dy)>=Math.abs(dx)) amount=-amount;
+
+     let scale;
+     if(c.includes('e')||c.includes('s')){
+       scale=1+Math.max(
+         c.includes('e') ? dx/s.w : 0,
+         c.includes('s') ? dy/s.h : 0
+       );
+     }else{
+       scale=1-Math.min(
+         c.includes('w') ? dx/s.w : 0,
+         c.includes('n') ? dy/s.h : 0
+       );
+     }
+     scale=Math.max(min/s.w,scale);
+     newW=s.w*scale;
+     newH=s.h*scale;
+
+     const fixedX=c.includes('e')?s.ox-s.w/2:s.ox+s.w/2;
+     const fixedY=c.includes('s')?s.oy-s.h/2:s.oy+s.h/2;
+     selected.x=fixedX+(c.includes('e')?newW/2:-newW/2);
+     selected.y=fixedY+(c.includes('s')?newH/2:-newH/2);
+   }
+
+   if(selected.type==='text'){
+     const factor=newW/s.w;
+     selected.size=Math.max(10,Math.min(300,s.size*factor));
+   }else{
+     selected.w=newW;
+     selected.h=newH;
    }
    syncControls();render();return;
  }
@@ -460,9 +515,18 @@ function syncSizeInputs(){
 }
 function resizeSelectedFromInputs(){
  if(!selected)return;
- const w=Math.max(10,+document.getElementById('objWidth').value||10);
- const h=Math.max(10,+document.getElementById('objHeight').value||10);
- const b=getBounds(selected);
+ let w=Math.max(10,+document.getElementById('objWidth').value||10);
+ let h=Math.max(10,+document.getElementById('objHeight').value||10);
+ const b=getBounds(selected),lock=document.getElementById('lockRatio')?.checked;
+ if(lock){
+   const ratio=b.w/b.h;
+   const lastChanged=document.activeElement?.id;
+   if(lastChanged==='objHeight') w=h*ratio;
+   else h=w/ratio;
+   w=Math.round(w);h=Math.round(h);
+   document.getElementById('objWidth').value=w;
+   document.getElementById('objHeight').value=h;
+ }
  if(selected.type==='text'){
    const factor=Math.min(w/b.w,h/b.h);
    selected.size=Math.max(10,Math.min(300,selected.size*factor));
